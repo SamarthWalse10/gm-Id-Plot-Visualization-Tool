@@ -115,5 +115,5 @@ This project is intended for **educational and research** purposes. When using p
 
 ## Contact / Acknowledgements
 
-If this repository helps you, please ⭐ the project and feel free to open issues for bugs or feature requests.  
+Feel free to open issues for bugs or feature requests.  
 **Acknowledgements:** Cadence Virtuoso workflows, and the Plotly and SciPy libraries used for plotting and interpolation.
