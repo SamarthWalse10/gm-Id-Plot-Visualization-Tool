@@ -1,7 +1,6 @@
 # gm/Id Plot Visualization Tool
 
-A Python-based tool for visualizing and analyzing **gm/Id** characteristics of MOSFET transistors across different process technologies.  
-It processes characterization data exported from Cadence Virtuoso through Parametric Analysis and generates interactive Plotly-based plots that help circuit designers optimize transistor sizing and operating points using the **gm/Id** methodology.
+A Python-based tool for visualizing and analyzing **gm/Id** characteristics of MOSFET transistors across different process technologies. It processes characterization data exported from Cadence Virtuoso through Parametric Analysis and generates interactive Plotly-based plots that help circuit designers optimize transistor sizing and operating points using the **gm/Id** methodology.
 
 ---
 
