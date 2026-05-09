@@ -14,7 +14,7 @@ This repository contains a three-stage automated workflow:
 
 1. **`create_gmId_tb.il` (The Architect):** A fully generalized Cadence SKILL script. It programmatically generates a perfectly wired, unified schematic testbench for simultaneous diode-connected NMOS and PMOS characterization.
 2. **`run_gmId_char.ocn` (The Engine):** A robust OCEAN script that executes an ultra-high-resolution DC sweep (e.g., 100nA to 10mA with 10nA steps). It extracts the exact operating points (gm, gds, cgg, Vth), formats them into `.csv` files, and automatically scrubs gigabytes of temporary simulation data from your hard drive to keep your workspace clean.
-3. **`main_tsmcN65.ipynb` (The Lens):** A highly optimized Python dashboard using Plotly and SciPy. It effortlessly handles millions of data points using real-time cubic spline interpolation, allowing you to interactively analyze sizing methodologies.
+3. **`main_gmId_plotter.ipynb` (The Lens):** A highly optimized Python dashboard using Plotly and SciPy. It effortlessly handles millions of data points using real-time cubic spline interpolation, allowing you to interactively analyze sizing methodologies.
 
 ---
 
@@ -58,7 +58,7 @@ Both `create_gmId_tb.il` and `run_gmId_char.ocn` feature a **!!! USER CONFIGURAT
 - Your transistor cell names (e.g., `nch` and `pch` or equivalent).
 
 > ⚠️ **Important Note on Customizing Channel Lengths:**
-> By default, the OCEAN script is configured to sweep 21 channel lengths specific to TSMC 65nm (60nm to 5µm). If you alter the `lengths` array in `run_gmId_char.ocn` to match a different PDK, **you must also update the Python script**. Open `main_tsmcN65.ipynb` and update the `l_mapping` dictionary so the dashboard can correctly parse and label your new simulated lengths.
+> By default, the OCEAN script is configured to sweep 21 channel lengths specific to TSMC 65nm (60nm to 5µm). If you alter the `lengths` array in `run_gmId_char.ocn` to match a different PDK, **you must also update the Python script**. Open `main_gmId_plotter.ipynb` and update the `l_mapping` dictionary so the dashboard can correctly parse and label your new simulated lengths.
 
 ### Step 2: Generate the Testbench
 
@@ -78,7 +78,7 @@ _Result: Spectre will run the high-resolution sweeps. Once finished, it will gen
 
 ### Step 4: Visualize the Data
 
-Launch Jupyter and open the `main_tsmcN65.ipynb` notebook.
+Launch Jupyter and open the `main_gmId_plotter.ipynb` notebook.
 
 1. Ensure `nmos_LUT.csv` and `pmos_LUT.csv` are in the same directory as the notebook.
 2. Run all cells.
