@@ -1,0 +1,204 @@
+; =========================================================================
+; run_gmId_char.ocn
+; Simultaneous dual-extraction of NMOS and PMOS gm/Id LUT data.
+; High Resolution Sweep: 100nA to 10mA (10nA steps)
+; Extracts 100% of data points and auto-cleans the PSF directory.
+; =========================================================================
+
+printf("\n================================================================\n")
+printf("       DUAL NMOS/PMOS gm/Id CHARACTERIZATION INITIATED          \n")
+printf("================================================================\n")
+
+printf("[1/5] Initializing simulator and design...\n")
+; --- CRITICAL: MUST BE INITIALIZED BEFORE VARIABLES ---
+simulator('spectre)
+design( "gm_Id_characterization" "nmos_pmos_tb" "schematic")
+
+; =========================================================================
+; !!! USER CONFIGURATION VARIABLES - UPDATE THESE AS NEEDED !!!
+; =========================================================================
+
+; 1. Transistor Sizing & Biasing
+desVar( "W" 10u )
+desVar( "Vdd" 1.2 )
+desVar( "Vbs_nmos" 0.0 ) ; 0V relative to GND (True Body-Source voltage)
+desVar( "Vbs_pmos" 0.0 ) ; 0V relative to VDD (True Body-Source voltage)
+desVar( "Idc" 100n )     ; Initialized to sweep start value
+
+; 2. Channel Length Array (Must be valid for your target PDK)
+lengths = '(0.06u 0.12u 0.18u 0.24u 0.3u 0.36u 0.42u 0.48u 0.54u 0.6u 0.66u 0.72u 0.78u 0.84u 0.90u 0.96u 1.02u 2u 3u 4u 5u)
+
+; 3. File Paths
+script_dir = "/home/samarth_walse/skill_scripts"
+
+; 4. TSMC 65nm Models (Update these if changing PDKs)
+modelFile( 
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_bip")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_dio")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_dio_33")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_mim")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_dio_dnw")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_dio_18")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_bip_npn")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_33")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_rfrtmom")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_mos_cap_25")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_18")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_disres")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_res")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_dio_na")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_rfmos_33")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_dio_hvt")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_rfmvar")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_rfmos_18")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_na")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_dio_na33")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_dio_lvt")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_rfres_sa")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_na33")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_dio_esd")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_rfmim")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_dio_25od33")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_25od33")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_mos_cap")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_dio_25")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_dio_25ud18")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_25")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_rfmos")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_25ud18")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_dio_na25od33")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_rfjvar")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_rfmos_25")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_rtmom")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_na25od33")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_dio_na25")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_rfres_rpo")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_hvt")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_rfind")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_rfmvar_25")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_na25")
+    '("/cad/TechLib/TSMC65/GP/TSMC65_MSRFGP/TSMC65/tsmcN65/../models/spectre/crn65gplus_2d5_lk_v1d0.scs" "tt_lvt")
+)
+printf("  -> Models loaded successfully.\n")
+; =========================================================================
+
+printf("[2/5] Configuring DC analysis parameters...\n")
+resultsDir("./psf_unified_char")
+
+; --- High Resolution Linear Sweep (100nA to 10mA, 10nA steps) ---
+analysis('dc ?saveOppoint t ?param "Idc" ?start "100n" ?stop "10m" ?step "10n")
+
+; Explicitly force Spectre to save OP for BOTH devices
+saveOpPoint( "/M0" ?operatingPoints "region vth vgs cgg gds ids gm" )
+saveOpPoint( "/M1" ?operatingPoints "region vth vgs cgg gds ids gm" )
+printf("  -> High Resolution Sweep configured (10nA steps, FULL EXTRACTION).\n")
+
+printf("[3/5] Initializing output CSV files...\n")
+total_lengths = length(lengths)
+
+; --- EXACT ABSOLUTE FILE PATHS ---
+csv_nmos = outfile( strcat(script_dir "/nmos_LUT.csv") )
+fprintf(csv_nmos "L,ID,VGS,GM,GDS,VTH,CGG\n")
+
+csv_pmos = outfile( strcat(script_dir "/pmos_LUT.csv") )
+fprintf(csv_pmos "L,ID,VGS,GM,GDS,VTH,CGG\n")
+printf("  -> Created 'nmos_LUT.csv' and 'pmos_LUT.csv' in %s\n" script_dir)
+
+printf("[4/5] Executing simulations and extracting data...\n")
+current_idx = 1
+
+foreach( L_val lengths
+    
+    desVar( "L" L_val )
+    printf("\n  -> [%d/%d] Running Dual-Extraction for L = %g...\n" current_idx total_lengths L_val)
+    
+    run()
+    
+    openResults( strcat(resultsDir() "/psf") )
+    selectResult('dc)
+    
+    ; --- Grab Base Voltages ---
+    vgs_wave_n = v("/drain_gate_nmos" ?result 'dc)
+    vdg_wave_p = v("/drain_gate_pmos" ?result 'dc)
+    
+    ; --- Extract NMOS OP (/M0) ---
+    gm_n  = OS("/M0" "gm")
+    gds_n = OS("/M0" "gds")
+    vth_n = OS("/M0" "vth")
+    cgg_n = OS("/M0" "cgg")
+    
+    ; --- Extract PMOS OP (/M1) ---
+    gm_p  = OS("/M1" "gm")
+    gds_p = OS("/M1" "gds")
+    vth_p = OS("/M1" "vth")
+    cgg_p = OS("/M1" "cgg")
+    
+    if( vgs_wave_n && vdg_wave_p then
+        id_vec = drGetWaveformXVec(vgs_wave_n)
+        num_points = drVectorLength(id_vec)
+        
+        v_y_n = drGetWaveformYVec(vgs_wave_n)
+        v_y_p = drGetWaveformYVec(vdg_wave_p)
+        
+        ; Map Y-Vectors safely
+        gm_y_n  = if(gm_n then drGetWaveformYVec(gm_n) else nil)
+        gds_y_n = if(gds_n then drGetWaveformYVec(gds_n) else nil)
+        vth_y_n = if(vth_n then drGetWaveformYVec(vth_n) else nil)
+        cgg_y_n = if(cgg_n then drGetWaveformYVec(cgg_n) else nil)
+        
+        gm_y_p  = if(gm_p then drGetWaveformYVec(gm_p) else nil)
+        gds_y_p = if(gds_p then drGetWaveformYVec(gds_p) else nil)
+        vth_y_p = if(vth_p then drGetWaveformYVec(vth_p) else nil)
+        cgg_y_p = if(cgg_p then drGetWaveformYVec(cgg_p) else nil)
+        
+        for( i 0 (num_points - 1)
+            ; X-axis (The shared Idc sweep value)
+            id_pt  = drGetElem(id_vec i)
+            
+            ; --- NMOS Point Extraction ---
+            vgs_n_pt = drGetElem(v_y_n i)
+            gm_n_pt  = if(gm_y_n then drGetElem(gm_y_n i) else 0.0)
+            gds_n_pt = if(gds_y_n then drGetElem(gds_y_n i) else 0.0)
+            vth_n_pt = if(vth_y_n then drGetElem(vth_y_n i) else 0.0)
+            cgg_n_pt = if(cgg_y_n then drGetElem(cgg_y_n i) else 0.0)
+            
+            ; --- PMOS Point Extraction ---
+            ; VGS calculation: Gate voltage - Source Voltage (1.2V)
+            vgs_p_pt = drGetElem(v_y_p i) - 1.2
+            gm_p_pt  = if(gm_y_p then drGetElem(gm_y_p i) else 0.0)
+            gds_p_pt = if(gds_y_p then drGetElem(gds_y_p i) else 0.0)
+            vth_p_pt = if(vth_y_p then drGetElem(vth_y_p i) else 0.0)
+            cgg_p_pt = if(cgg_y_p then drGetElem(cgg_y_p i) else 0.0)
+            
+            ; Write Rows directly to disk
+            fprintf(csv_nmos "%g,%g,%g,%g,%g,%g,%g\n" L_val id_pt vgs_n_pt gm_n_pt gds_n_pt vth_n_pt cgg_n_pt)
+            fprintf(csv_pmos "%g,%g,%g,%g,%g,%g,%g\n" L_val id_pt vgs_p_pt gm_p_pt gds_p_pt vth_p_pt cgg_p_pt)
+        )
+        printf("     > Simulation successful. Calculated and wrote all %d points to CSV.\n" num_points)
+    else
+        printf("     > [ERROR] Simulation failed or returned no data for L = %g\n" L_val)
+    )
+    
+    current_idx++
+)
+
+printf("\n[5/5] Finalizing files and cleaning up...\n")
+close(csv_nmos)
+close(csv_pmos)
+
+; --- AUTO-CLEANUP ROUTINE ---
+printf("  -> Deleting temporary PSF directory...\n")
+sh("rm -rf ./psf_unified_char")
+
+printf("  -> Deleting temporary numbered job folders (1 to %d)...\n" total_lengths)
+for( k 1 total_lengths
+    sh( sprintf(nil "rm -rf ./%d" k) )
+)
+
+printf("\n================================================================\n")
+printf(" [SUCCESS] Dual extraction complete! \n")
+printf("           Generated full-resolution 'nmos_LUT.csv' and 'pmos_LUT.csv'\n")
+printf("           in: %s\n" script_dir)
+printf("           ALL temporary simulation folders have been deleted.\n")
+printf("================================================================\n\n")
