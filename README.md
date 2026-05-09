@@ -12,17 +12,17 @@ A complete, end-to-end automation toolkit for extracting and visualizing gm/Id L
 
 This repository contains a three-stage automated workflow:
 
-1. **`create_gmId_tb.il` (The Architect):** A fully generalized Cadence SKILL script. It programmatically generates a perfectly wired, error-free unified schematic testbench for simultaneous NMOS and PMOS characterization.
-2. **`run_gmId_char.ocn` (The Engine):** A robust OCEAN script that executes an ultra-high-resolution DC sweep (e.g., 100nA to 10mA with 10nA steps). It extracts the exact operating points (gm, gds, cgg, Vth), formats them into pristine CSV files, and automatically scrubs gigabytes of temporary simulation data from your hard drive to keep your workspace clean.
-3. **`main_tsmcN65.ipynb` (The Lens):** A highly optimized Python dashboard using Plotly and SciPy. It effortlessly handles millions of data points using real-time cubic spline interpolation, allowing you to interactively analyze sizing methodologies without UI lag.
+1. **`create_gmId_tb.il` (The Architect):** A fully generalized Cadence SKILL script. It programmatically generates a perfectly wired, unified schematic testbench for simultaneous diode connected NMOS and PMOS characterization.
+2. **`run_gmId_char.ocn` (The Engine):** A robust OCEAN script that executes an ultra-high-resolution DC sweep (e.g., 100nA to 10mA with 10nA steps). It extracts the exact operating points (gm, gds, cgg, Vth), formats them into .csv files, and automatically scrubs gigabytes of temporary simulation data from your hard drive to keep your workspace clean.
+3. **`main_tsmcN65.ipynb` (The Lens):** A highly optimized Python dashboard using Plotly and SciPy. It effortlessly handles millions of data points using real-time cubic spline interpolation, allowing you to interactively analyze sizing methodologies.
 
 ---
 
 ## Features
 
-- **PDK Agnostic Design:** Easily configurable for different technology nodes. Simply update the variables block at the top of the scripts to match your target PDK.
+- **PDK Mapped Design:** Easily configurable for different technology nodes. Simply update the variables block at the top of the scripts to match your target PDK.
 - **Unified Extraction:** Characterize NMOS and PMOS devices simultaneously in a single simulation run.
-- **True Vbs Biasing:** NMOS and PMOS bodies are correctly referenced to Source, allowing for accurate Body-Effect (gmb) extraction.
+- **True Vbs Biasing:** NMOS and PMOS bodies are correctly Initialized to Source, allowing for accurate Body-Effect (gmb) extraction which can later be changed.
 - **Ultra-High Resolution:** Capable of sweeping massive ranges (e.g., 10nA steps) yielding millions of data points for highly accurate derivative extraction (gm, cgg).
 - **Auto-Cleanup:** The OCEAN script automatically deletes Cadence `psf` and numbered job folders post-extraction to save disk space.
 - **Interactive Visualization:** Real-time parameter selection, cross-hair tracking, and interpolation updates in JupyterLab.
@@ -33,7 +33,7 @@ This repository contains a three-stage automated workflow:
 
 **For the Simulation Pipeline:**
 
-- Cadence Virtuoso (IC6.1.x or newer)
+- Cadence Virtuoso (IC23.1)
 - Spectre Circuit Simulator
 - Access to the **TSMC 65nm (tsmcN65)** PDK (or equivalent if adapting the scripts)
 
@@ -57,15 +57,15 @@ Both `create_gmId_tb.il` and `run_gmId_char.ocn` feature a **!!! USER CONFIGURAT
 Before running, open both scripts and update:
 
 - Your absolute file paths for saving the CSVs.
-- The specific model paths for your Spectre simulation (if not using TSMC 65nm).
-- Your transistor cell names (if not using `nch` and `pch`).
+- The specific model paths for your Spectre simulation.
+- Your transistor cell names (Eg: `nch` and `pch` or any other).
 
 ### Step 2: Generate the Testbench
 
 Open the Cadence CIW (Command Interface Window) and load the SKILL script:
 
 ```skill
-load("/path/to/your/create_gmId_tb.il")
+load("path to your create_gmId_tb.il")
 ```
 
 _Result: A new library named `gm_Id_characterization` will be created containing a fully wired `nmos_pmos_tb` schematic._
@@ -75,7 +75,7 @@ _Result: A new library named `gm_Id_characterization` will be created containing
 In the Cadence CIW, load the OCEAN script:
 
 ```skill
-load("/path/to/your/run_gmId_char.ocn")
+load(" path to your run_gmId_char.ocn")
 ```
 
 _Result: Spectre will run the high-resolution sweeps across 21 channel lengths (60nm to 5um). Once finished, it will generate `nmos_LUT.csv` and `pmos_LUT.csv` and delete the temporary simulation folders._
