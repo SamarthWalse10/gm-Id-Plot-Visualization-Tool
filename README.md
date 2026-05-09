@@ -35,7 +35,7 @@ This repository contains a three-stage automated workflow:
 
 - Cadence Virtuoso (IC23.1)
 - Spectre Circuit Simulator
-- Access to the **TSMC 65nm (tsmcN65)** PDK (or equivalent if adapting the scripts)
+- Access to the **TSMC 65nm (tsmcN65)** PDK
 
 **For the Visualization Dashboard:**
 
@@ -74,7 +74,7 @@ In the Cadence CIW, load the OCEAN script:
 
 `load("/path/to/your/run_gmId_char.ocn")`
 
-_Result: Spectre will run the high-resolution sweeps. Once finished, it will generate `nmos_LUT.csv` and `pmos_LUT.csv` and delete the temporary simulation folders._
+_Result: Spectre will run the high-resolution sweeps. Once finished, it will generate `nmos_LUT.csv` and `pmos_LUT.csv` and delete the temporary simulation folders. (This process may take several minutes to execute.)_
 
 ### Step 4: Visualize the Data
 
@@ -97,13 +97,13 @@ The gm/Id (transconductance-to-current ratio) metric normalizes transistor behav
 
 ---
 
-## License & Disclaimer
+## License
 
-This project is intended for **educational and research purposes**.
-
-- The Python and SKILL/OCEAN automation scripts are open-source.
-- **DO NOT** upload, share, or commit proprietary PDK data, confidential model files, or generated CSVs containing foundry-specific characterization data to public repositories. Ensure compliance with your institution's or company's NDA and PDK licensing agreements.
+This project is intended for **educational and research** purposes. When using proprietary PDK data or characterization files, ensure compliance with the respective PDK licensing and distribution agreements.
 
 ---
 
-_Built to streamline Analog IC Design workflows._
+## Contact / Acknowledgements
+
+Feel free to open issues for bugs or feature requests.  
+**Acknowledgements:** Cadence Virtuoso workflows, and the Plotly and SciPy libraries used for plotting and interpolation.
