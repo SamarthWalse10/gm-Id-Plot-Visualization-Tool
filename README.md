@@ -57,6 +57,8 @@ Both `create_gmId_tb.il` and `run_gmId_char.ocn` feature a **!!! USER CONFIGURAT
 - The specific model paths for your Spectre simulation.
 - Your transistor cell names (e.g., `nch` and `pch` or equivalent).
 
+> ⚠️ **Important Note on Transistor Width (W):** By default, the OCEAN script extracts data using a transistor width of `W = 10u`. If you modify this value in `run_gmId_char.ocn`, **you must also update the `W` variable in the Python script** (`main_gmId_plotter.ipynb`, default is `W = 10e-6`). This ensures that normalized metrics like `Id/W` and `gm/W` are calculated accurately.
+
 ### Step 2: Generate the Testbench
 
 Open the Cadence CIW (Command Interface Window) and load the SKILL script:
