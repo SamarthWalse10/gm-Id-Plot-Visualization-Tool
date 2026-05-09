@@ -57,9 +57,6 @@ Both `create_gmId_tb.il` and `run_gmId_char.ocn` feature a **!!! USER CONFIGURAT
 - The specific model paths for your Spectre simulation.
 - Your transistor cell names (e.g., `nch` and `pch` or equivalent).
 
-> ⚠️ **Important Note on Customizing Channel Lengths:**
-> By default, the OCEAN script is configured to sweep 21 channel lengths specific to TSMC 65nm (60nm to 5µm). If you alter the `lengths` array in `run_gmId_char.ocn` to match a different PDK, **you must also update the Python script**. Open `main_gmId_plotter.ipynb` and update the `l_mapping` dictionary so the dashboard can correctly parse and label your new simulated lengths.
-
 ### Step 2: Generate the Testbench
 
 Open the Cadence CIW (Command Interface Window) and load the SKILL script:
