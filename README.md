@@ -1,6 +1,6 @@
 # gm/Id Plot Visualization Tool
 
-# Automated gm/Id Characterization Pipeline
+## Automated gm/Id Characterization Pipeline
 
 A complete, end-to-end automation toolkit for extracting and visualizing gm/Id Look-Up Tables (LUTs) for MOSFETs. This pipeline bridges the gap between Cadence Virtuoso and modern Python data visualization, allowing analog IC designers to instantly generate testbenches, run massive ultra-high-resolution simulations, and interactively analyze device physics.
 
