@@ -4,7 +4,7 @@
 
 A complete, end-to-end automation toolkit for extracting and visualizing gm/Id Look-Up Tables (LUTs) for MOSFETs. This pipeline bridges the gap between Cadence Virtuoso and modern Python data visualization, allowing analog IC designers to instantly generate testbenches, run massive ultra-high-resolution simulations, and interactively analyze device physics.
 
-> **Note:** This toolkit was specifically built and tested using the **TSMC 65nm (tsmcN65)** PDK. However, the SKILL and OCEAN scripts are fully generalized and can be easily adapted to other PDKs (like GPDK180 or TSMC 45nm) by updating the configuration variables.
+> **Note:** This toolkit was specifically built and tested using the TSMC 65nm (tsmcN65) or any other PDK. However, the SKILL and OCEAN scripts are fully generalized and can be easily adapted to other PDKs (like GPDK180 or TSMC 45nm) by updating the configuration variables.
 
 ---
 
