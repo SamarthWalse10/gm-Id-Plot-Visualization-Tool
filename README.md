@@ -91,12 +91,14 @@ Ensure `nmos_LUT.csv` and `pmos_LUT.csv` are in your current working directory, 
 2. Run all cells.
 3. Use the interactive dropdowns to plot metrics like `gm/Id` vs `gm/gds`, `Id/W`, or `Vov`.
 4. Toggle `Real Time Interpolation` to generate smooth curves between raw data points.
+5. Hover over any curve to see formatted DataTips.
 
 **Option B: Using MATLAB**
 1. Open MATLAB and navigate to the folder containing your CSVs and `gmId_Plotter.m`.
 2. Run the command `gmId_Plotter()` in the Command Window.
 3. A standalone, high-performance GUI will launch. It will automatically cache your data into a `.mat` file for instant loading on future runs.
-4. Hover over any curve to see perfectly formatted, vectorized DataTips (e.g., `Vov = -27.301 mV`).
+4. Use the interactive dropdowns to plot metrics and toggle `Real Time Interpolation` to generate smooth curves between raw data points.
+5. Hover over any curve to see formatted DataTips.
 
 ---
 
