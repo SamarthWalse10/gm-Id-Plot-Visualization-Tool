@@ -2,7 +2,7 @@
 
 ## Automated gm/Id Characterization Pipeline
 
-A complete, end-to-end automation toolkit for extracting and visualizing gm/Id Look-Up Tables (LUTs) for MOSFETs. This pipeline bridges the gap between Cadence Virtuoso and modern Python data visualization, allowing analog IC designers to instantly generate testbenches, run massive ultra-high-resolution simulations, and interactively analyze device physics.
+A complete, end-to-end automation toolkit for extracting and visualizing gm/Id Look-Up Tables (LUTs) for MOSFETs. This pipeline bridges the gap between Cadence Virtuoso and modern data visualization environments (Python and MATLAB), allowing analog IC designers to instantly generate testbenches, run massive ultra-high-resolution simulations, and interactively analyze device physics.
 
 > **Note:** This toolkit was specifically built and tested using the **TSMC 65nm (tsmcN65)** PDK. However, the SKILL and OCEAN scripts are fully generalized and can be easily adapted to other PDKs (like GPDK180 or TSMC 45nm) by updating the configuration variables.
 
@@ -119,4 +119,4 @@ This project is intended for **educational and research** purposes. When using p
 ## Contact / Acknowledgements
 
 Feel free to open issues for bugs or feature requests.  
-**Acknowledgements:** Cadence Virtuoso workflows, and the Plotly and SciPy libraries used for plotting and interpolation.
+**Acknowledgements:** Cadence Virtuoso workflows, the Plotly and SciPy libraries used for Python plotting and interpolation, and MATLAB's native UI/App computing architecture for the standalone dashboard.
