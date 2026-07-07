@@ -3,7 +3,7 @@ function gmId_Plotter()
     warning('off', 'MATLAB:Axes:NegativeDataInLogAxis');
     warning('off', 'MATLAB:Axes:NegativeXDataInLogAxis');
     warning('off', 'MATLAB:Axes:NegativeYDataInLogAxis');
-
+    
     % ==========================================
     % 1. SMART DATA LOADING AND CACHING
     % ==========================================
@@ -28,6 +28,8 @@ function gmId_Plotter()
     if isfile(cache_file)
         try
             cache = load(cache_file);
+            % If the CSV files were updated via Cadence, the datenum/bytes will mismatch 
+            % and automatically trigger a fresh extraction, ensuring dynamic W is captured.
             if isequal(cache.nmos_bytes, nmos_info.bytes) && isequal(cache.nmos_date, nmos_info.datenum) && ...
                isequal(cache.pmos_bytes, pmos_info.bytes) && isequal(cache.pmos_date, pmos_info.datenum)
                 use_cache = true;
@@ -50,15 +52,14 @@ function gmId_Plotter()
         
         df_nmos_raw = readtable(csv_nmos_file);
         df_pmos_raw = readtable(csv_pmos_file);
-        W = 10e-6; % Default extraction width (10um)
         plot_decimation = 10; % Decimation factor for GUI performance
         
         % --- Process NMOS ---
         df_nmos_raw.gm_Id = df_nmos_raw.GM ./ df_nmos_raw.ID;
         df_nmos_raw.gm_gds = df_nmos_raw.GM ./ df_nmos_raw.GDS;
         df_nmos_raw.gm_cgg = df_nmos_raw.GM ./ df_nmos_raw.CGG;
-        df_nmos_raw.Id_W = df_nmos_raw.ID / W;
-        df_nmos_raw.gm_W = df_nmos_raw.GM / W;
+        df_nmos_raw.Id_W = df_nmos_raw.ID ./ df_nmos_raw.W; % DYNAMIC WIDTH SCALING
+        df_nmos_raw.gm_W = df_nmos_raw.GM ./ df_nmos_raw.W; % DYNAMIC WIDTH SCALING
         df_nmos_raw.gds_Id = df_nmos_raw.GDS ./ df_nmos_raw.ID;
         df_nmos_raw.Vov = df_nmos_raw.VGS - df_nmos_raw.VTH;
         df_nmos = df_nmos_raw(1:plot_decimation:end, :);
@@ -67,8 +68,8 @@ function gmId_Plotter()
         df_pmos_raw.gm_Id = df_pmos_raw.GM ./ df_pmos_raw.ID;
         df_pmos_raw.gm_gds = df_pmos_raw.GM ./ df_pmos_raw.GDS;
         df_pmos_raw.gm_cgg = df_pmos_raw.GM ./ df_pmos_raw.CGG;
-        df_pmos_raw.Id_W = df_pmos_raw.ID / W;
-        df_pmos_raw.gm_W = df_pmos_raw.GM / W;
+        df_pmos_raw.Id_W = df_pmos_raw.ID ./ df_pmos_raw.W; % DYNAMIC WIDTH SCALING
+        df_pmos_raw.gm_W = df_pmos_raw.GM ./ df_pmos_raw.W; % DYNAMIC WIDTH SCALING
         df_pmos_raw.gds_Id = df_pmos_raw.GDS ./ df_pmos_raw.ID;
         df_pmos_raw.Vov = abs(df_pmos_raw.VGS) - abs(df_pmos_raw.VTH); 
         df_pmos = df_pmos_raw(1:plot_decimation:end, :);
@@ -177,13 +178,18 @@ function gmId_Plotter()
         x_idx = strcmp(paramNames, x_param);
         y_idx = strcmp(paramNames, y_param);
         
-        h_legend_plots = [];
-        legend_labels = {};
+        % Preallocate arrays to prevent MATLAB memory reallocation warnings
+        num_selected = length(selected_L_vals);
+        h_legend_plots = gobjects(1, num_selected); 
+        legend_labels = cell(1, num_selected);
+        valid_plot_count = 0; % Counter for successfully plotted lines
         
-        % [OPTIMIZATION 1] Fast Native Array Extraction
+        % Fast Native Array Extraction
         L_array = data.L;
+        W_array = data.W; % Dynamically loaded Width array (Used for calculation, hidden in display)
         X_array = data.(x_param);
         Y_array = data.(y_param);
+        Vov_array = data.Vov; % Using Vov as the robust physical sorting parameter
         
         % --- Pre-calculate Bounds for Guide Line Clamping ---
         mask = ismember(L_array, selected_L_vals);
@@ -212,60 +218,86 @@ function gmId_Plotter()
         
         for i = 1:length(selected_L_vals)
             l_val = selected_L_vals(i);
-            l_str = formatLength(l_val); 
             
             color_idx = find(unique_lengths == l_val, 1);
             line_color = colors(color_idx, :);
             
-            % [OPTIMIZATION 1] Fast Logical Indexing
+            % Fast Logical Indexing
             idx = (L_array == l_val);
             x_data = X_array(idx);
             y_data = Y_array(idx);
+            vov_data = Vov_array(idx);
+            w_data = W_array(idx);
             
-            valid_idx = ~isnan(x_data) & ~isnan(y_data);
+            % Ensure no NaNs exist in any of the arrays used for interpolation
+            valid_idx = ~isnan(x_data) & ~isnan(y_data) & ~isnan(vov_data) & ~isnan(w_data);
             x_clean = x_data(valid_idx);
             y_clean = y_data(valid_idx);
+            vov_clean = vov_data(valid_idx);
             
             if isempty(x_clean); continue; end
+            
+            % Increment plot counter for preallocation indexing
+            valid_plot_count = valid_plot_count + 1;
+            
+            % Extract the exact length for Legend & DataTips
+            l_str = formatLength(l_val); 
+            
+            % Create a dynamic label that shows ONLY L
+            display_str = sprintf('L = %s', l_str);
             
             markerStyle = 'none';
             if chkMarkers.Value
                 markerStyle = 'o';
             end
             
-            if chkInterp.Value && length(x_clean) > 3
-                [x_sorted, sort_idx] = sort(x_clean);
-                y_sorted = y_clean(sort_idx);
-                [x_unique, unique_idx] = unique(x_sorted);
-                y_unique = y_sorted(unique_idx);
+            % [ROBUST PARAMETRIC INTERPOLATION FIX]
+            % Sort data purely by the physical sweep variable (Vov) to fix out-of-order CSV points
+            [vov_sorted, sort_idx] = sort(vov_clean);
+            x_sorted = x_clean(sort_idx);
+            y_sorted = y_clean(sort_idx);
+            
+            % Remove duplicate Vov points to guarantee strict monotonic progression for spline
+            [vov_unique, unique_idx] = unique(vov_sorted);
+            x_unique = x_sorted(unique_idx);
+            y_unique = y_sorted(unique_idx);
+            
+            if chkInterp.Value && length(x_unique) > 3
+                % Generate a dense array based purely on Vov
+                vov_dense = linspace(min(vov_unique), max(vov_unique), min(1000, length(vov_unique)*10));
                 
-                if length(x_unique) > 3
-                    x_dense = linspace(min(x_unique), max(x_unique), min(500, length(x_clean)*10));
-                    y_dense = interp1(x_unique, y_unique, x_dense, 'spline');
-                    
-                    p = plot(ax, x_dense, y_dense, 'Color', line_color, 'LineWidth', 2);
-                    h_legend_plots = [h_legend_plots, p];
-                    legend_labels{end+1} = l_str;
-                    
-                    setupHoverData(p, l_str, displayNames{x_idx}, displayNames{y_idx});
-                    
-                    if chkMarkers.Value
-                        p_mark = plot(ax, x_unique, y_unique, 'LineStyle', 'none', ...
-                            'Marker', 'o', 'MarkerSize', 4, 'MarkerFaceColor', line_color, 'MarkerEdgeColor', line_color);
-                        setupHoverData(p_mark, l_str, displayNames{x_idx}, displayNames{y_idx});
-                    end
-                    calculateIntersections(x_unique, y_unique, line_color, true);
+                % Interpolate X and Y independently against Vov
+                x_dense = interp1(vov_unique, x_unique, vov_dense, 'spline');
+                y_dense = interp1(vov_unique, y_unique, vov_dense, 'spline');
+                
+                p = plot(ax, x_dense, y_dense, 'Color', line_color, 'LineWidth', 2);
+                h_legend_plots(valid_plot_count) = p;
+                legend_labels{valid_plot_count} = display_str;
+                
+                setupHoverData(p, display_str, displayNames{x_idx}, displayNames{y_idx});
+                
+                if chkMarkers.Value
+                    p_mark = plot(ax, x_unique, y_unique, 'LineStyle', 'none', ...
+                        'Marker', 'o', 'MarkerSize', 4, 'MarkerFaceColor', line_color, 'MarkerEdgeColor', line_color);
+                    setupHoverData(p_mark, display_str, displayNames{x_idx}, displayNames{y_idx});
                 end
-            else
-                p = plot(ax, x_clean, y_clean, 'Color', line_color, 'LineWidth', 2, ...
-                    'Marker', markerStyle, 'MarkerSize', 4);
-                h_legend_plots = [h_legend_plots, p];
-                legend_labels{end+1} = l_str;
                 
-                setupHoverData(p, l_str, displayNames{x_idx}, displayNames{y_idx});
-                calculateIntersections(x_clean, y_clean, line_color, false);
+                % Pass the high-res dense curve straight to the intersection function
+                calculateIntersections(x_dense, y_dense, line_color);
+            else
+                p = plot(ax, x_unique, y_unique, 'Color', line_color, 'LineWidth', 2, ...
+                    'Marker', markerStyle, 'MarkerSize', 4);
+                h_legend_plots(valid_plot_count) = p;
+                legend_labels{valid_plot_count} = display_str;
+                
+                setupHoverData(p, display_str, displayNames{x_idx}, displayNames{y_idx});
+                calculateIntersections(x_unique, y_unique, line_color);
             end
         end
+        
+        % Trim preallocated arrays to remove any empty spaces from skipped lengths
+        h_legend_plots = h_legend_plots(1:valid_plot_count);
+        legend_labels = legend_labels(1:valid_plot_count);
         
         if chkXGuide.Value
             xline(ax, edtXGuide.Value, '--k', 'LineWidth', 1.5, 'Alpha', 0.5);
@@ -290,55 +322,70 @@ function gmId_Plotter()
         end
     end
 
-    % --- Helper Function: Format Length (nm/um) ---
-    function str = formatLength(L)
-        if L < 0.99e-6
-            str = sprintf('%gnm', round(L * 1e9, 2));
+    % ==========================================
+    % HELPER FUNCTIONS (Formatting & Interactivity)
+    % ==========================================
+
+    % --- Helper Function: Format Length/Width (nm/um) ---
+    function str = formatLength(val)
+        if val < 0.99e-6
+            str = sprintf('%g nm', round(val * 1e9, 2));
         else
-            str = sprintf('%gum', round(L * 1e6, 2));
+            str = sprintf('%g %sm', round(val * 1e6, 2), char(181)); 
+        end
+    end
+
+    % --- Helper Function: Vectorized String Formatting (mV vs V) ---
+    function str_array = getFormattedStrings(name, data_array)
+        str_array = strings(size(data_array));
+        if strcmp(name, 'Vov')
+            mV_mask = abs(data_array) > 0 & abs(data_array) < 1;
+            if any(mV_mask(:))
+                str_array(mV_mask) = compose('%s = %gmV', name, data_array(mV_mask) * 1000);
+            end
+            if any(~mV_mask(:))
+                str_array(~mV_mask) = compose('%s = %gV', name, data_array(~mV_mask));
+            end
+        else
+            str_array = compose(sprintf('%s = %%g', name), data_array);
         end
     end
 
     % --- Helper Function: Custom Hover Data (DataTips) ---
-    function setupHoverData(plotObj, l_str, x_name, y_name)
+    function setupHoverData(plotObj, display_str, x_name, y_name)
         try
             numPts = length(plotObj.XData);
-            % [OPTIMIZATION 3] Native Cell Arrays instead of Strings to prevent memory thrashing
-            L_array = repmat({l_str}, numPts, 1);
-            plotObj.DataTipTemplate.DataTipRows(1) = dataTipTextRow('L', L_array);
-            plotObj.DataTipTemplate.DataTipRows(2) = dataTipTextRow(x_name, plotObj.XData);
-            plotObj.DataTipTemplate.DataTipRows(3) = dataTipTextRow(y_name, plotObj.YData);
+            % Display_str contains 'L = ...' format
+            Label_array = repmat({display_str}, numPts, 1);
+            x_str_array = getFormattedStrings(x_name, plotObj.XData);
+            y_str_array = getFormattedStrings(y_name, plotObj.YData);
+            
+            plotObj.DataTipTemplate.DataTipRows(1) = dataTipTextRow('', Label_array);
+            plotObj.DataTipTemplate.DataTipRows(2) = dataTipTextRow('', x_str_array);
+            plotObj.DataTipTemplate.DataTipRows(3) = dataTipTextRow('', y_str_array);
         catch
         end
     end
 
     % --- Helper Function: Intersections ---
-    function calculateIntersections(x_pts, y_pts, pColor, isInterpolated)
+    function calculateIntersections(x_curve, y_curve, pColor)
         if chkXGuide.Value
             x_target = edtXGuide.Value;
-            if isInterpolated && min(x_pts) <= x_target && max(x_pts) >= x_target
-                y_int = interp1(x_pts, y_pts, x_target, 'spline');
-                plot(ax, x_target, y_int, 'o', 'MarkerSize', 10, 'MarkerFaceColor', pColor, 'MarkerEdgeColor', 'k', 'LineWidth', 1);
-            elseif ~isInterpolated
-                [~, idx] = min(abs(x_pts - x_target));
-                plot(ax, x_pts(idx), y_pts(idx), 'o', 'MarkerSize', 10, 'MarkerFaceColor', pColor, 'MarkerEdgeColor', 'k', 'LineWidth', 1);
+            if min(x_curve) <= x_target && max(x_curve) >= x_target
+                [min_dist, idx] = min(abs(x_curve - x_target));
+                if min_dist < (max(x_curve) - min(x_curve))*0.05
+                    plot(ax, x_target, y_curve(idx), 'o', 'MarkerSize', 10, 'MarkerFaceColor', pColor, 'MarkerEdgeColor', 'k', 'LineWidth', 1);
+                end
             end
         end
         
         if chkYGuide.Value
             y_target = edtYGuide.Value;
-            if isInterpolated && min(y_pts) <= y_target && max(y_pts) >= y_target
-                % [OPTIMIZATION 2] Reduced root-finding resolution from 1000 to 200 points
-                % This maintains sub-pixel visual accuracy for the diamond marker but executes 5x faster
-                x_dense = linspace(min(x_pts), max(x_pts), 200);
-                y_dense = interp1(x_pts, y_pts, x_dense, 'spline');
-                [min_dist, idx] = min(abs(y_dense - y_target));
-                if min_dist < (max(y_dense) - min(y_dense))*0.05
-                    plot(ax, x_dense(idx), y_dense(idx), 'd', 'MarkerSize', 10, 'MarkerFaceColor', pColor, 'MarkerEdgeColor', 'k', 'LineWidth', 1);
+            if min(y_curve) <= y_target && max(y_curve) >= y_target
+                [min_dist, idx] = min(abs(y_curve - y_target));
+                if min_dist < (max(y_curve) - min(y_curve))*0.05
+                    plot(ax, x_curve(idx), y_target, 'd', 'MarkerSize', 10, 'MarkerFaceColor', pColor, 'MarkerEdgeColor', 'k', 'LineWidth', 1);
                 end
-            elseif ~isInterpolated
-                [~, idx] = min(abs(y_pts - y_target));
-                plot(ax, x_pts(idx), y_pts(idx), 'd', 'MarkerSize', 10, 'MarkerFaceColor', pColor, 'MarkerEdgeColor', 'k', 'LineWidth', 1);
             end
         end
     end
